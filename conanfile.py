@@ -1,7 +1,7 @@
 import os
 
 from conan import ConanFile
-from conan.tools.cmake import CMakeDeps, CMakeToolchain, cmake_layout
+from conan.tools.cmake import CMake, CMakeDeps, CMakeToolchain, cmake_layout
 from conan.tools.files import copy
 
 
@@ -10,14 +10,10 @@ class AlayaLiteConan(ConanFile):
     version = "0.1.1a1"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "header-library"
-    exports_sources = "include/*"
-    platform_tool_requires = "cmake/3.23.5"  # cmake version
+    exports_sources = "include/*", "python/*", "python/*/*", "python/*/*/*", "cmake/*", "CMakeLists.txt"
+    platform_tool_requires = "cmake/3.23.5"
 
     def layout(self):
-        """
-        Let Conan automatically handle the build directory structure
-        Resolve output conflicts between different compilers across platforms
-        """
         cmake_layout(self)
 
     def requirements(self):
@@ -27,16 +23,12 @@ class AlayaLiteConan(ConanFile):
         self.requires("spdlog/1.14.0")
         self.requires("eigen/3.4.0")
 
-        # OpenMP support
         if self.settings.os == "Linux":
             self.requires("libcoro/0.14.1")
 
     def configure(self):
-        # Static link all dependencies
         self.options["*"].shared = False
         self.options["*"].fPIC = True
-
-        # Use header-only spdlog to avoid ABI compatibility issues on Windows
         self.options["spdlog"].header_only = True
 
         if self.settings.os == "Linux":
@@ -50,6 +42,12 @@ class AlayaLiteConan(ConanFile):
         tc.generate()
         cmake = CMakeDeps(self)
         cmake.generate()
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.configure()
+        cmake.build()
+        cmake.install()
 
     def package(self):
         copy(
